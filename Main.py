@@ -1,14 +1,11 @@
-from Tkinter import Tk, Label, Button, Entry, IntVar, END, W, E
-import numpy
+from tkinter import *
+from tkinter import filedialog
+from tkinter import messagebox
+from tkinter import StringVar
+from DataProcessor import *
 import pandas
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.wrappers.scikit_learn import KerasClassifier
-from sklearn.model_selection import cross_val_score
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import StratifiedKFold
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
+import os.path
+
 
 class Calculator:
     def __init__(self, master):
@@ -65,29 +62,84 @@ class Calculator:
         self.entry.delete(0, END)
 
 
+def build():
+    structure = filename+"/Structure.txt"
+    train = filename+"/train.csv"
+    test = filename+"/test.csv"
+    processor=data_processor(structure, train, test)
+
+def classify():
+    print("classifying")
+
+
+def validate_all_files():
+    if not os.path.isdir(filename):
+        return False, "The Chosen File Is Not A Folder"
+    elif not os.path.isfile(filename+"/Structure.txt"):
+        return False, "Structure.txt Doesn't Exists"
+    elif not os.path.isfile(filename+"/train.csv"):
+        return False, "train.csv Doesn't Exists"
+    elif not os.path.isfile(filename+"/test.csv"):
+        return False, "test.csv Doesn't Exists"
+    else:
+        return True, None
+
+
+def browse_button():
+    # Allow user to select a directory and store it in global var called folder_path
+    global folder_path, filename
+    filename = filedialog.askdirectory()
+    folder_path.set(filename)
+    validation=validate_all_files()
+    if not validation[0]:
+        folder_path.set("")
+        messagebox.showinfo("Error", validation[1])
+    return None
+
+
+def input_check(*args):
+    bins = disc_input.get()
+    if bins and filename!="":
+        try:
+            value=int(bins)
+            if value>0:
+                build_button.config(state='normal')
+        except:
+            return
+    else:
+        build_button.config(state='disabled')
+
+
+print "Not Graduate,Graduate".split(",")
+
 root = Tk()
-my_gui = Calculator(root)
+root.geometry("500x400+400+300")
+
+filename = ""
+folder_path = StringVar()
+# browse
+browse_lbl = Label(master=root, text="Directory Path")
+browse_lbl.grid(row=1, column=1)
+input_path = Entry(root, textvariable=folder_path)
+input_path.grid(row=1, column=2)
+browse_button = Button(text="Browse", command=browse_button)
+browse_button.grid(row=1, column=5)
+
+# Discretization
+var = StringVar(root)
+var.trace("w", input_check)
+disc_lbl = Label(master=root, text="Discretization Bins")
+disc_lbl.grid(row=2, column=1)
+disc_input = Entry(root, textvariable=var)
+disc_input.grid(row=2, column=2)
+
+# build button
+build_button = Button(text="Build", command=build)
+build_button.grid(row=4, column=2)
+build_button.config(state='disabled')
+
+# classify button
+classify_button = Button(text="Classify", command=classify)
+classify_button.grid(row=5, column=2)
+
 root.mainloop()
-
-
-
-dataframe = pandas.read_csv("d:\\documents\\users\\markoi\\Downloads\\sonar.csv", header=None)
-dataset = dataframe.values
-X = dataset[:,0:60].astype(float)
-Y = dataset[:,60]
-enc = LabelEncoder()
-enc.fit(Y)
-encoded_Y = enc.transform(Y)
-def create_baseline():
-   model = Sequential()
-   model.add(Dense(60, input_dim=60, kernel_initializer='normal', activation='relu'))
-   model.add(Dense(1, kernel_initializer='normal', activation='sigmoid'))
-   model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-   return model
-estimator = KerasClassifier(build_fn=create_baseline, epochs=100, batch_size=5, verbose=1)
-kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=numpy.random.seed(7))
-results = cross_val_score(estimator, X, encoded_Y, cv=kfold)
-print("Results: %.2f%% (%.2f%%)" % (results.mean()*100, results.std()*100))
-
-# Results: 80.71% (4.02%)
-
