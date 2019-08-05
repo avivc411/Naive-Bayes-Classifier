@@ -3,73 +3,36 @@ from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import StringVar
 from DataProcessor import *
-import pandas
+from Classifier import *
 import os.path
-
-
-class Calculator:
-    def __init__(self, master):
-        self.master = master
-        master.title("Assignment IV")
-
-        self.total = 0
-        self.entered_number = 0
-
-        self.total_label_text = IntVar()
-        self.total_label_text.set(self.total)
-        self.total_label = Label(master, textvariable=self.total_label_text)
-
-        self.label = Label(master, text="Total:")
-
-        vcmd = master.register(self.validate)  # we have to wrap the command
-        self.entry = Entry(master, validate="key", validatecommand=(vcmd, '%P'))
-
-        self.add_button = Button(master, text="+", command=lambda: self.update("add"))
-        self.subtract_button = Button(master, text="-", command=lambda: self.update("subtract"))
-        self.reset_button = Button(master, text="Reset", command=lambda: self.update("reset"))
-
-        # LAYOUT
-
-        self.label.grid(row=0, column=0, sticky=W)
-        self.total_label.grid(row=0, column=1, columnspan=2, sticky=E)
-
-        self.entry.grid(row=1, column=0, columnspan=3, sticky=W+E)
-
-        self.add_button.grid(row=2, column=0)
-        self.subtract_button.grid(row=2, column=1)
-        self.reset_button.grid(row=2, column=2, sticky=W+E)
-
-    def validate(self, new_text):
-        if not new_text:  # the field is being cleared
-            self.entered_number = 0
-            return True
-
-        try:
-            self.entered_number = int(new_text)
-            return True
-        except ValueError:
-            return False
-
-    def update(self, method):
-        if method == "add":
-            self.total += self.entered_number
-        elif method == "subtract":
-            self.total -= self.entered_number
-        else:  # reset
-            self.total = 0
-
-        self.total_label_text.set(self.total)
-        self.entry.delete(0, END)
 
 
 def build():
     structure = filename+"/Structure.txt"
     train = filename+"/train.csv"
     test = filename+"/test.csv"
-    processor=data_processor(structure, train, test)
+    try:
+        processor=data_processor(structure, train, int(bins_num.get()), test)
+        global data
+        data = processor.process_data()
+        messagebox.showinfo("Naive Bayes Classifier", "Building classifier using train-set is done!")
+    except Exception as e:
+        messagebox.showinfo("Naive Bayes Classifier", str(e))
+
 
 def classify():
-    print("classifying")
+    global data
+    classifier = Classifier(test=data[3], structure=data[0],
+                            train=data[1], meta_data=data[2], bins=bins_num)
+    output = open(filename+"/output.txt", "a")
+    i=1
+    for classification in classifier.classify():
+        output.write(str(i)+" "+str(classification)+"\n")
+        i+=1
+    output.close()
+    messagebox.showinfo("Naive Bayes Classifier", "Classification is done!")
+    root.destroy()
+    sys.exit(0)
 
 
 def validate_all_files():
@@ -86,19 +49,18 @@ def validate_all_files():
 
 
 def browse_button():
-    # Allow user to select a directory and store it in global var called folder_path
     global folder_path, filename
     filename = filedialog.askdirectory()
     folder_path.set(filename)
     validation=validate_all_files()
     if not validation[0]:
         folder_path.set("")
-        messagebox.showinfo("Error", validation[1])
+        messagebox.showinfo("Naive Bayes Classifier", validation[1])
     return None
 
 
 def input_check(*args):
-    bins = disc_input.get()
+    bins = bins_input.get()
     if bins and filename!="":
         try:
             value=int(bins)
@@ -110,13 +72,12 @@ def input_check(*args):
         build_button.config(state='disabled')
 
 
-print "Not Graduate,Graduate".split(",")
-
 root = Tk()
 root.geometry("500x400+400+300")
 
 filename = ""
 folder_path = StringVar()
+
 # browse
 browse_lbl = Label(master=root, text="Directory Path")
 browse_lbl.grid(row=1, column=1)
@@ -126,12 +87,12 @@ browse_button = Button(text="Browse", command=browse_button)
 browse_button.grid(row=1, column=5)
 
 # Discretization
-var = StringVar(root)
-var.trace("w", input_check)
-disc_lbl = Label(master=root, text="Discretization Bins")
-disc_lbl.grid(row=2, column=1)
-disc_input = Entry(root, textvariable=var)
-disc_input.grid(row=2, column=2)
+bins_num = StringVar(root)
+bins_num.trace("w", input_check)
+bins_lbl = Label(master=root, text="Discretization Bins")
+bins_lbl.grid(row=2, column=1)
+bins_input = Entry(root, textvariable=bins_num)
+bins_input.grid(row=2, column=2)
 
 # build button
 build_button = Button(text="Build", command=build)
