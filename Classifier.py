@@ -22,9 +22,9 @@ class Classifier:
             cond_prob_class1 *= classes_prob[0]
             cond_prob_class2 *= classes_prob[1]
             if cond_prob_class1 > cond_prob_class2:
-                classification.append(self.meta_data["class"][0])
+                classification.append(self.meta_data['class'][0])
             else:
-                classification.append(self.meta_data["class"][1])
+                classification.append(self.meta_data['class'][1])
         return classification
 
     def calculate_prob_m_estimate(self, attribute, row_val, class_val):

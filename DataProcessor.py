@@ -11,6 +11,8 @@ class data_processor:
         self.structure = open(structure)
         if sum(1 for line in self.structure) < 2:
             raise Exception("Structure File Is Empty")
+        self.structure.close()
+        self.structure = open(structure)
         self.train = pd.read_csv(train)
         if self.train.shape[0] < 2 or self.train.shape[1] < 2:
             raise Exception("Train File Is Empty")
